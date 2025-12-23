@@ -8,6 +8,16 @@ pipeline {
     skipDefaultCheckout true
   }
   stages {
+      stage('Checkout') {
+        steps {
+          script {
+            echo 'Checking out repository...'
+            checkout scm
+            sh 'echo Workspace listing:'
+            sh 'ls -la'
+          }
+        }
+      }
     stage('Init') {
       steps {
         script {
@@ -17,10 +27,11 @@ pipeline {
             sshUserPrivateKey(credentialsId: 'SSH_CRED_ID', keyFileVariable: 'SSH_KEY')
           ])
            {
-            sh '''
-              echo "Initializing Terraform..."
-              git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt; terraform init
-            '''
+              sh '''
+                echo "Initializing Terraform..."
+                ls -la
+                git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt; terraform init
+              '''
           }
         }
       }
