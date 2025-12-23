@@ -12,8 +12,19 @@ provider "aws" {
   # Credentials will be supplied via environment variables
 }
 
+// Lookup a recent Amazon Linux 2 AMI for the configured region to avoid stale AMI IDs
+data "aws_ami" "amazon_linux2" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
 resource "aws_instance" "example" {
-  ami           = "ami-0c55b233c98b585ba" # Replace with a suitable AMI
+  ami           = data.aws_ami.amazon_linux2.id
   instance_type = var.instance_type # Use the variable for instance type
 
   tags = {
