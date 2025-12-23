@@ -65,7 +65,7 @@ pipeline {
       when { branch 'dev' }
       steps {
         script {
-          input message: 'Approve apply to dev?', ok: 'Apply'
+          input message: 'Approve apply to branch dev?', ok: 'Apply'
           def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'dev'
           withCredentials([
             usernamePassword(credentialsId: 'AWS_CRED_ID', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY'),
