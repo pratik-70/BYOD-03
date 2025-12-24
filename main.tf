@@ -26,8 +26,50 @@ data "aws_ami" "amazon_linux2" {
 resource "aws_instance" "example" {
   ami           = data.aws_ami.amazon_linux2.id
   instance_type = var.instance_type # Use the variable for instance type
+  vpc_security_group_ids = [aws_security_group.splunk_sg.id]
 
   tags = {
     Name = "ExampleInstance"
+  }
+}
+
+resource "aws_security_group" "splunk_sg" {
+  name        = "splunk-security-group"
+  description = "Security group for Splunk and SSH access"
+
+  # Allow SSH
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Splunk management port
+  ingress {
+    from_port   = 8089
+    to_port     = 8089
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Splunk web interface
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "splunk-sg"
   }
 }

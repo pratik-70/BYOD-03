@@ -146,17 +146,16 @@ EOF
               fi
               
               echo "Waiting for SSH port to be reachable..."
-              for i in $(seq 1 60); do
-                if nc -z -w 5 ${INSTANCE_IP} 22 2>/dev/null; then
-                  echo "✓ SSH port is reachable"
-                  exit 0
-                fi
-                echo "  Attempt $i/60: SSH not ready yet, waiting..."
-                sleep 5
-              done
+              timeout 300 bash -c 'until nc -z -w 2 ${INSTANCE_IP} 22 2>/dev/null; do echo "  Waiting for SSH..."; sleep 5; done'
               
-              echo "✗ SSH port not reachable after 5 minutes"
-              exit 1
+              if [ $? -eq 0 ]; then
+                echo "✓ SSH port is reachable"
+              else
+                echo "✗ SSH port not reachable after 5 minutes"
+                echo "Checking EC2 instance security group..."
+                aws ec2 describe-security-groups --filters "Name=group-id" --instance-ids ${INSTANCE_ID} --region us-east-1 || true
+                exit 1
+              fi
             '''
           }
         }
