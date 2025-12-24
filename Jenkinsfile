@@ -122,7 +122,7 @@ KEYEOF
             echo "Creating dynamic inventory file..."
             cat > dynamic_inventory.ini <<EOF
 [webservers]
-${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=${SSH_KEY_PATH} ansible_python_interpreter=/usr/bin/python3.8
+${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=${SSH_KEY_PATH} ansible_python_interpreter=/usr/bin/python3
 EOF
             
             echo "Dynamic inventory created:"
