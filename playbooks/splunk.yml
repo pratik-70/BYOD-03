@@ -9,6 +9,16 @@
     splunk_home: "/opt/splunk"
     splunk_admin_password: "SplunkAdmin123!"
 
+  pre_tasks:
+    - name: Ensure Python 3.8 is installed (Amazon Linux 2)
+      shell: |
+        if ! command -v python3.8 >/dev/null 2>&1; then
+          amazon-linux-extras enable python3.8
+          yum clean metadata
+          yum install -y python3.8
+        fi
+      changed_when: false
+
   tasks:
     - name: Update system packages
       yum:
