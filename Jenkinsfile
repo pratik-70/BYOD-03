@@ -146,7 +146,7 @@ EOF
               fi
               
               echo "Waiting for SSH port to be reachable..."
-              for i in {1..60}; do
+              for i in $(seq 1 60); do
                 if nc -z -w 5 ${INSTANCE_IP} 22 2>/dev/null; then
                   echo "✓ SSH port is reachable"
                   exit 0
