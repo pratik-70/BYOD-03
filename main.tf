@@ -3,6 +3,10 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 4.0"
+          tls = {
+            source  = "hashicorp/tls"
+            version = "~> 4.0"
+          }
     }
   }
 }
@@ -10,6 +14,18 @@ terraform {
 provider "aws" {
   region = var.region # Use the variable for region
   # Credentials will be supplied via environment variables
+}
+
+// Generate a new SSH key pair
+resource "tls_private_key" "deployer" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+// Create AWS key pair from the generated public key
+resource "aws_key_pair" "deployer" {
+  key_name   = var.key_name
+  public_key = tls_private_key.deployer.public_key_openssh
 }
 
 // Lookup a recent Amazon Linux 2 AMI for the configured region to avoid stale AMI IDs
@@ -27,7 +43,7 @@ resource "aws_instance" "example" {
   ami           = data.aws_ami.amazon_linux2.id
   instance_type = var.instance_type # Use the variable for instance type
   vpc_security_group_ids = [aws_security_group.splunk_sg.id]
-  key_name = var.key_name != "" ? var.key_name : null
+  key_name = aws_key_pair.deployer.key_name
 
   tags = {
     Name = "ExampleInstance"

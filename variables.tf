@@ -12,6 +12,6 @@ variable "instance_type" {
 
 variable "key_name" {
   type    = string
-  default = ""
-  description = "The name of the key pair to use for EC2 instance. Leave empty to skip."
+  default = "ansible-key"
+  description = "The name of the key pair to use for EC2 instance."
 }

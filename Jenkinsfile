@@ -83,10 +83,10 @@ pipeline {
           def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'dev'
           withCredentials([
             usernamePassword(credentialsId: 'AWS_CRED_ID', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY'),
-            sshUserPrivateKey(credentialsId: 'SSH_CRED_ID', keyFileVariable: 'SSH_KEY')
           ]) {
             def instancePublicIp = sh(script: 'terraform output -raw instance_public_ip 2>/dev/null', returnStdout: true).trim()
             def instanceId = sh(script: 'terraform output -raw instance_id 2>/dev/null', returnStdout: true).trim()
+                        def sshPrivateKey = sh(script: 'terraform output -raw ssh_private_key 2>/dev/null', returnStdout: true).trim()
             
             if (instancePublicIp.isEmpty() || instanceId.isEmpty()) {
               error("Error: Failed to capture Terraform outputs")
@@ -94,7 +94,9 @@ pipeline {
             
             // Copy SSH key to workspace for use in later stages
             sh '''
-              cp ${SSH_KEY} ${WORKSPACE}/id_rsa
+              cat > ${WORKSPACE}/id_rsa <<'KEYEOF'
+$sshPrivateKey
+KEYEOF
               chmod 600 ${WORKSPACE}/id_rsa
               echo "✓ SSH key copied to workspace"
             '''
