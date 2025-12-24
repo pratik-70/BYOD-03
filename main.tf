@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -22,9 +26,13 @@ resource "tls_private_key" "deployer" {
   rsa_bits  = 2048
 }
 
-// Create AWS key pair from the generated public key
+resource "random_id" "key_suffix" {
+  byte_length = 4
+}
+
+// Create AWS key pair from the generated public key with unique suffix to avoid duplicates
 resource "aws_key_pair" "deployer" {
-  key_name   = var.key_name
+  key_name   = "${var.key_name}-${random_id.key_suffix.hex}"
   public_key = tls_private_key.deployer.public_key_openssh
 }
 
