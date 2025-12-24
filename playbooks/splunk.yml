@@ -12,60 +12,60 @@
 
   tasks:
     - name: Update system packages
-      shell: yum update -y
+      raw: yum update -y
       register: yum_update
       retries: 3
       delay: 10
 
     - name: Install required dependencies
-      shell: yum install -y wget curl openssl libffi-devel openssl-devel python3 python3-pip
+      raw: yum install -y wget curl openssl libffi-devel openssl-devel python3 python3-pip
       register: install_deps
 
     - name: Create splunk group
-      shell: groupadd {{ splunk_group }} || true
+      raw: groupadd splunk || true
 
     - name: Create splunk user
-      shell: useradd -g {{ splunk_group }} -m -s /bin/bash {{ splunk_user }} || true
+      raw: useradd -g splunk -m -s /bin/bash splunk || true
 
     - name: Download Splunk Enterprise
-      shell: |
-        wget -O "/tmp/splunk-{{ splunk_version }}-Linux-x86_64.tgz" \
-          "https://download.splunk.com/products/splunk/releases/{{ splunk_version }}/linux/splunk-{{ splunk_version }}-Linux-x86_64.tgz"
+      raw: |
+        wget -O "/tmp/splunk-9.0.5-Linux-x86_64.tgz" \
+          "https://download.splunk.com/products/splunk/releases/9.0.5/linux/splunk-9.0.5-Linux-x86_64.tgz"
       register: splunk_download
       retries: 3
       delay: 10
 
     - name: Extract Splunk archive
-      shell: tar -xzf "/tmp/splunk-{{ splunk_version }}-Linux-x86_64.tgz" -C /opt
+      raw: tar -xzf "/tmp/splunk-9.0.5-Linux-x86_64.tgz" -C /opt
 
     - name: Set ownership on Splunk directory
-      shell: chown -R {{ splunk_user }}:{{ splunk_group }} {{ splunk_home }}
+      raw: chown -R splunk:splunk /opt/splunk
 
     - name: Create Splunk configuration directories
-      shell: |
-        mkdir -p {{ splunk_home }}/etc/system/local
-        mkdir -p {{ splunk_home }}/var
-        chown -R {{ splunk_user }}:{{ splunk_group }} {{ splunk_home }}/etc {{ splunk_home }}/var
-        chmod -R 755 {{ splunk_home }}/etc {{ splunk_home }}/var
+      raw: |
+        mkdir -p /opt/splunk/etc/system/local
+        mkdir -p /opt/splunk/var
+        chown -R splunk:splunk /opt/splunk/etc /opt/splunk/var
+        chmod -R 755 /opt/splunk/etc /opt/splunk/var
 
     - name: Start Splunk on first run
-      shell: |
-        su - {{ splunk_user }} -c "{{ splunk_home }}/bin/splunk start --accept-license --answer-yes --seed-passwd '{{ splunk_admin_password }}' || true"
+      raw: |
+        su - splunk -c "/opt/splunk/bin/splunk start --accept-license --answer-yes --seed-passwd 'SplunkAdmin123!' || true"
       register: splunk_start
       retries: 3
       delay: 30
 
     - name: Enable Splunk at boot
-      shell: su - {{ splunk_user }} -c "{{ splunk_home }}/bin/splunk enable boot-start -auth admin:{{ splunk_admin_password }}"
+      raw: su - splunk -c "/opt/splunk/bin/splunk enable boot-start -auth admin:SplunkAdmin123!"
       register: splunk_boot
       ignore_errors: yes
 
     - name: Wait for Splunk to fully start
-      shell: sleep 15; timeout 300 bash -c 'until nc -z localhost 8089; do sleep 5; done'
+      raw: sleep 15; timeout 300 bash -c 'until nc -z localhost 8089; do sleep 5; done'
       ignore_errors: yes
 
     - name: Clean up temporary files
-      shell: rm -f "/tmp/splunk-{{ splunk_version }}-Linux-x86_64.tgz"
+      raw: rm -f "/tmp/splunk-9.0.5-Linux-x86_64.tgz"
 
     - name: Display Splunk installation status
-      shell: echo "Splunk {{ splunk_version }} installation completed"
+      raw: echo "Splunk 9.0.5 installation completed"
