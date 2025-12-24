@@ -162,7 +162,6 @@ EOF
         }
       }
     }
-    }
 
     stage('Splunk Installation & Testing') {
       steps {
