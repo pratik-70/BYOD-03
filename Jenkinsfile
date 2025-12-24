@@ -92,9 +92,16 @@ pipeline {
               error("Error: Failed to capture Terraform outputs")
             }
             
+            // Copy SSH key to workspace for use in later stages
+            sh '''
+              cp ${SSH_KEY} ${WORKSPACE}/id_rsa
+              chmod 600 ${WORKSPACE}/id_rsa
+              echo "✓ SSH key copied to workspace"
+            '''
+            
             env.INSTANCE_IP = instancePublicIp
             env.INSTANCE_ID = instanceId
-            env.SSH_KEY_PATH = env.SSH_KEY
+            env.SSH_KEY_PATH = "${WORKSPACE}/id_rsa"
             
             echo "✓ Captured Outputs:"
             echo "  Instance Public IP: ${env.INSTANCE_IP}"
@@ -238,11 +245,11 @@ EOF
           fi
         '''
         
-        // Clean up environment properties file
+        // Clean up SSH key file
         sh '''
-          if [ -f $WORKSPACE/env.properties ]; then
-            rm -f $WORKSPACE/env.properties
-            echo "✓ Deleted environment properties file"
+          if [ -f ${WORKSPACE}/id_rsa ]; then
+            rm -f ${WORKSPACE}/id_rsa
+            echo "✓ Deleted SSH key file"
           fi
         '''
       }
