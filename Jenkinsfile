@@ -102,7 +102,10 @@ pipeline {
               echo "INSTANCE_IP=$INSTANCE_PUBLIC_IP" >> $WORKSPACE/env.properties
               echo "INSTANCE_ID=$INSTANCE_ID" >> $WORKSPACE/env.properties
             '''
-            load "$WORKSPACE/env.properties"
+            def props = readProperties file: "$WORKSPACE/env.properties"
+            env.INSTANCE_IP = props.INSTANCE_IP
+            env.INSTANCE_ID = props.INSTANCE_ID
+            echo "✓ Captured - INSTANCE_IP: ${env.INSTANCE_IP}, INSTANCE_ID: ${env.INSTANCE_ID}"
           }
         }
       }
