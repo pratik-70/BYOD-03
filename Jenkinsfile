@@ -122,7 +122,7 @@ EOF
             cat dynamic_inventory.ini
             
             # Verify the file format
-            if grep -q "^\[webservers\]" dynamic_inventory.ini && grep -q "ansible_user=" dynamic_inventory.ini; then
+            if grep -q "\\[webservers\\]" dynamic_inventory.ini && grep -q "ansible_user=" dynamic_inventory.ini; then
               echo "✓ Dynamic inventory file correctly formatted for Ansible"
             else
               echo "✗ Dynamic inventory file format incorrect"
