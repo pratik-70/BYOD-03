@@ -10,10 +10,12 @@
     splunk_admin_password: "SplunkAdmin123!"
 
   pre_tasks:
-    - name: Ensure Python 3 is installed (Amazon Linux 2)
+    - name: Ensure Python 3.8 is installed (Amazon Linux 2)
       shell: |
-        if ! command -v python3 >/dev/null 2>&1; then
-          yum install -y python3 python3-pip
+        if ! command -v python3.8 >/dev/null 2>&1; then
+          amazon-linux-extras enable python3.8
+          yum clean metadata
+          yum install -y python3.8 python3-pip
         fi
       changed_when: false
 
