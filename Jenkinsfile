@@ -41,7 +41,7 @@ pipeline {
       steps {
         script {
           def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'dev'
-          sh "echo 'Displaying vars for branch: ${branch}'; if [ -f ${branch}.tfvars ]; then cat ${branch}.tfvars; else echo '${branch}.tfvars not found'; fi"
+          sh "echo 'Displaying vars for the branch: ${branch}'; if [ -f ${branch}.tfvars ]; then cat ${branch}.tfvars; else echo '${branch}.tfvars not found'; fi"
         }
       }
     }
