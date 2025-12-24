@@ -85,27 +85,19 @@ pipeline {
             usernamePassword(credentialsId: 'AWS_CRED_ID', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY'),
             sshUserPrivateKey(credentialsId: 'SSH_CRED_ID', keyFileVariable: 'SSH_KEY')
           ]) {
-            sh '''
-              echo "Capturing Terraform outputs..."
-              INSTANCE_PUBLIC_IP=$(terraform output -raw instance_public_ip 2>/dev/null || echo "")
-              INSTANCE_ID=$(terraform output -raw instance_id 2>/dev/null || echo "")
-              
-              if [ -z "$INSTANCE_PUBLIC_IP" ] || [ -z "$INSTANCE_ID" ]; then
-                echo "Error: Failed to capture Terraform outputs"
-                exit 1
-              fi
-              
-              echo "Instance Public IP: $INSTANCE_PUBLIC_IP"
-              echo "Instance ID: $INSTANCE_ID"
-              
-              # Export to Jenkins environment variables
-              echo "INSTANCE_IP=$INSTANCE_PUBLIC_IP" >> $WORKSPACE/env.properties
-              echo "INSTANCE_ID=$INSTANCE_ID" >> $WORKSPACE/env.properties
-            '''
-            def props = readProperties file: "$WORKSPACE/env.properties"
-            env.INSTANCE_IP = props.INSTANCE_IP
-            env.INSTANCE_ID = props.INSTANCE_ID
-            echo "✓ Captured - INSTANCE_IP: ${env.INSTANCE_IP}, INSTANCE_ID: ${env.INSTANCE_ID}"
+            def instancePublicIp = sh(script: 'terraform output -raw instance_public_ip 2>/dev/null', returnStdout: true).trim()
+            def instanceId = sh(script: 'terraform output -raw instance_id 2>/dev/null', returnStdout: true).trim()
+            
+            if (instancePublicIp.isEmpty() || instanceId.isEmpty()) {
+              error("Error: Failed to capture Terraform outputs")
+            }
+            
+            env.INSTANCE_IP = instancePublicIp
+            env.INSTANCE_ID = instanceId
+            
+            echo "✓ Captured Outputs:"
+            echo "  Instance Public IP: ${env.INSTANCE_IP}"
+            echo "  Instance ID: ${env.INSTANCE_ID}"
           }
         }
       }
