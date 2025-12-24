@@ -144,10 +144,24 @@ EOF
                 echo "✗ Instance health check failed"
                 exit 1
               fi
+              
+              echo "Waiting for SSH port to be reachable..."
+              for i in {1..60}; do
+                if nc -z -w 5 ${INSTANCE_IP} 22 2>/dev/null; then
+                  echo "✓ SSH port is reachable"
+                  exit 0
+                fi
+                echo "  Attempt $i/60: SSH not ready yet, waiting..."
+                sleep 5
+              done
+              
+              echo "✗ SSH port not reachable after 5 minutes"
+              exit 1
             '''
           }
         }
       }
+    }
     }
 
     stage('Splunk Installation & Testing') {
