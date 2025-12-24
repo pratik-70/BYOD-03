@@ -27,16 +27,16 @@
     - name: Create splunk user
       raw: useradd -g splunk -m -s /bin/bash splunk || true
 
-    - name: Download Splunk Enterprise
+    - name: Download Splunk Enterprise RPM
       raw: |
-        wget -O "/tmp/splunk-9.0.5-Linux-x86_64.tgz" \
-          "https://download.splunk.com/products/splunk/releases/9.0.5/linux/splunk-9.0.5-Linux-x86_64.tgz"
+        wget -O "/tmp/splunk-9.1.2-b6b9c8185839-linux-2.6-x86_64.rpm" \
+          "https://download.splunk.com/products/splunk/releases/9.1.2/linux/splunk-9.1.2-b6b9c8185839-linux-2.6-x86_64.rpm"
       register: splunk_download
       retries: 3
       delay: 10
 
-    - name: Extract Splunk archive
-      raw: tar -xzf "/tmp/splunk-9.0.5-Linux-x86_64.tgz" -C /opt
+    - name: Install Splunk RPM
+      raw: rpm -ivh "/tmp/splunk-9.1.2-b6b9c8185839-linux-2.6-x86_64.rpm"
 
     - name: Set ownership on Splunk directory
       raw: chown -R splunk:splunk /opt/splunk
@@ -65,7 +65,7 @@
       ignore_errors: yes
 
     - name: Clean up temporary files
-      raw: rm -f "/tmp/splunk-9.0.5-Linux-x86_64.tgz"
+      raw: rm -f "/tmp/splunk-9.1.2-b6b9c8185839-linux-2.6-x86_64.rpm"
 
     - name: Display Splunk installation status
-      raw: echo "Splunk 9.0.5 installation completed"
+      raw: echo "Splunk 9.1.2 installation completed"
