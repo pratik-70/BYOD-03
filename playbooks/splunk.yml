@@ -1,0 +1,142 @@
+---
+- name: Install and Configure Splunk
+  hosts: webservers
+  become: yes
+  vars:
+    splunk_version: "9.0.5"
+    splunk_user: "splunk"
+    splunk_group: "splunk"
+    splunk_home: "/opt/splunk"
+    splunk_admin_password: "SplunkAdmin123!"
+
+  tasks:
+    - name: Update system packages
+      yum:
+        name: '*'
+        state: latest
+      register: yum_update
+      retries: 3
+      delay: 10
+
+    - name: Install required dependencies
+      yum:
+        name:
+          - wget
+          - curl
+          - openssl
+          - libffi-devel
+          - openssl-devel
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Create splunk user and group
+      block:
+        - name: Create splunk group
+          group:
+            name: "{{ splunk_group }}"
+            state: present
+
+        - name: Create splunk user
+          user:
+            name: "{{ splunk_user }}"
+            group: "{{ splunk_group }}"
+            createhome: yes
+            shell: /bin/bash
+            state: present
+
+    - name: Download Splunk Enterprise
+      get_url:
+        url: "https://download.splunk.com/products/splunk/releases/{{ splunk_version }}/linux/splunk-{{ splunk_version }}-Linux-x86_64.tgz"
+        dest: "/tmp/splunk-{{ splunk_version }}-Linux-x86_64.tgz"
+        timeout: 300
+      register: splunk_download
+      retries: 3
+      delay: 10
+
+    - name: Extract Splunk archive
+      unarchive:
+        src: "/tmp/splunk-{{ splunk_version }}-Linux-x86_64.tgz"
+        dest: /opt
+        remote_src: yes
+        owner: "{{ splunk_user }}"
+        group: "{{ splunk_group }}"
+
+    - name: Create Splunk configuration directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ splunk_user }}"
+        group: "{{ splunk_group }}"
+        mode: '0755'
+      loop:
+        - "{{ splunk_home }}/etc"
+        - "{{ splunk_home }}/var"
+
+    - name: Create seed file for initial configuration
+      file:
+        path: "{{ splunk_home }}/etc/system/local/default-mode.conf"
+        state: touch
+        owner: "{{ splunk_user }}"
+        group: "{{ splunk_group }}"
+        mode: '0644'
+
+    - name: Start Splunk on first run
+      shell: |
+        {{ splunk_home }}/bin/splunk start --accept-license --answer-yes \
+          --seed-passwd "{{ splunk_admin_password }}" || true
+      become_user: "{{ splunk_user }}"
+      register: splunk_start
+      retries: 3
+      delay: 30
+
+    - name: Enable Splunk at boot
+      shell: "{{ splunk_home }}/bin/splunk enable boot-start -auth admin:{{ splunk_admin_password }}"
+      become_user: "{{ splunk_user }}"
+      register: splunk_boot
+      ignore_errors: yes
+
+    - name: Wait for Splunk to fully start
+      wait_for:
+        port: 8089
+        delay: 10
+        timeout: 300
+        host: localhost
+      register: splunk_listening
+
+    - name: Verify Splunk daemon connection
+      shell: "{{ splunk_home }}/bin/splunk show forward-server -auth admin:{{ splunk_admin_password }}"
+      become_user: "{{ splunk_user }}"
+      register: splunk_verify
+      retries: 5
+      delay: 10
+      ignore_errors: yes
+
+    - name: Configure Splunk inputs (monitoring system logs)
+      shell: |
+        {{ splunk_home }}/bin/splunk add monitor /var/log/messages \
+          -auth admin:{{ splunk_admin_password }} \
+          -sourcetype syslog \
+          -index main || true
+      become_user: "{{ splunk_user }}"
+      ignore_errors: yes
+
+    - name: Enable Splunk web service
+      shell: "{{ splunk_home }}/bin/splunk show web -auth admin:{{ splunk_admin_password }}"
+      become_user: "{{ splunk_user }}"
+      register: splunk_web
+      ignore_errors: yes
+
+    - name: Clean up temporary files
+      file:
+        path: "/tmp/splunk-{{ splunk_version }}-Linux-x86_64.tgz"
+        state: absent
+
+    - name: Display Splunk installation status
+      debug:
+        msg: "Splunk {{ splunk_version }} installation completed"
+
+  handlers:
+    - name: Restart Splunk
+      shell: "{{ splunk_home }}/bin/splunk restart"
+      become_user: "{{ splunk_user }}"

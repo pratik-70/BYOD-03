@@ -1,0 +1,66 @@
+# Terraform files
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.backup
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Ansible
+*.retry
+/tmp/ansible_facts/
+__pycache__/
+*.pyc
+
+# Jenkins
+.jenkins/
+jenkins.log
+*.properties
+
+# Dynamic files (created at runtime)
+dynamic_inventory.ini
+env.properties
+
+# AWS credentials (never commit these!)
+.aws/
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+
+# Splunk related
+.splunk-sdk/
