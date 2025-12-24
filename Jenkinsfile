@@ -92,14 +92,15 @@ pipeline {
               error("Error: Failed to capture Terraform outputs")
             }
             
-            // Copy SSH key to workspace for use in later stages
-            sh '''
+            // Save SSH key from Terraform output to workspace for use in later stages
+            sh """
               cat > ${WORKSPACE}/id_rsa <<'KEYEOF'
-$sshPrivateKey
+${sshPrivateKey}
 KEYEOF
               chmod 600 ${WORKSPACE}/id_rsa
-              echo "✓ SSH key copied to workspace"
-            '''
+              ssh-keygen -y -f ${WORKSPACE}/id_rsa >/dev/null
+              echo "✓ SSH key saved to workspace"
+            """
             
             env.INSTANCE_IP = instancePublicIp
             env.INSTANCE_ID = instanceId
