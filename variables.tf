@@ -9,3 +9,9 @@ variable "instance_type" {
   default = "t2.micro"
   description = "The EC2 instance type."
 }
+
+variable "key_name" {
+  type    = string
+  default = ""
+  description = "The name of the key pair to use for EC2 instance. Leave empty to skip."
+}

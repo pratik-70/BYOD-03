@@ -175,8 +175,23 @@ EOF
       steps {
         script {
           sh '''
+            echo "Verifying SSH connectivity before Ansible..."
+            ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@${INSTANCE_IP} "echo 'SSH connection successful'; uname -a"
+            
+            if [ $? -ne 0 ]; then
+              echo "✗ SSH connection failed"
+              echo "Debugging info:"
+              echo "  SSH Key: ${SSH_KEY_PATH}"
+              echo "  User: ec2-user"
+              echo "  Host: ${INSTANCE_IP}"
+              echo "  Instance ID: ${INSTANCE_ID}"
+              exit 1
+            fi
+            
+            echo "✓ SSH connectivity verified"
+            echo ""
             echo "Running Splunk installation playbook..."
-            ansible-playbook -i dynamic_inventory.ini playbooks/splunk.yml
+            ansible-playbook -i dynamic_inventory.ini playbooks/splunk.yml -vvv
             
             if [ $? -ne 0 ]; then
               echo "✗ Splunk installation failed"

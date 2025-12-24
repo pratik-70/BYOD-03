@@ -27,6 +27,7 @@ resource "aws_instance" "example" {
   ami           = data.aws_ami.amazon_linux2.id
   instance_type = var.instance_type # Use the variable for instance type
   vpc_security_group_ids = [aws_security_group.splunk_sg.id]
+  key_name = var.key_name != "" ? var.key_name : null
 
   tags = {
     Name = "ExampleInstance"
