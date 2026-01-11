@@ -27,7 +27,7 @@
     - name: Create splunk user
       raw: useradd -g splunk -m -s /bin/bash splunk || true
 
-    - - name: Download Splunk Enterprise RPM
+    - name: Download Splunk Enterprise RPM
   get_url:
     url: https://download.splunk.com/products/splunk/releases/9.0.5/linux/splunk-9.0.5-e9494146ae5c-linux-2.6-x86_64.rpm
     dest: /tmp/splunk.rpm
