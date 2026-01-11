@@ -1,122 +1,50 @@
 ---
-- name: Test Splunk Installation and Connectivity
-  hosts: webservers
+- name: Test Splunk Installation
+  hosts: splunk_servers
   become: yes
   vars:
     splunk_home: "/opt/splunk"
-    splunk_admin_user: "admin"
-    splunk_admin_password: "SplunkAdmin123!"
-    splunk_port: 8089
-    splunk_web_port: 8000
-
+  
   tasks:
     - name: Check if Splunk process is running
-      shell: "pgrep -f 'splunkd -p' | wc -l"
-      register: splunk_process_check
+      command: pgrep -f splunkd
+      register: splunk_process
+      failed_when: splunk_process.rc != 0
       changed_when: false
-
-    - name: Verify Splunk process is active
-      assert:
-        that:
-          - splunk_process_check.stdout | int > 0
-        fail_msg: "Splunk daemon process is not running"
-        success_msg: "✓ Splunk daemon process is running"
-
-    - name: Check Splunk management port connectivity
-      wait_for:
-        host: localhost
-        port: "{{ splunk_port }}"
-        timeout: 60
-        msg: "Splunk management port is not reachable"
-
-    - name: Check Splunk web port connectivity
-      wait_for:
-        host: localhost
-        port: "{{ splunk_web_port }}"
-        timeout: 60
-        msg: "Splunk web port is not reachable"
-
-    - name: Verify Splunk CLI is accessible
-      shell: "{{ splunk_home }}/bin/splunk --version"
-      register: splunk_version_check
-      changed_when: false
-
-    - name: Display Splunk version
-      debug:
-        msg: "{{ splunk_version_check.stdout }}"
-
-    - name: Test Splunk service status
-      shell: "systemctl is-active splunk || echo 'Service not managed by systemd'"
-      register: splunk_systemd_status
-      changed_when: false
-      ignore_errors: yes
-
-    - name: Verify Splunk configuration
-      shell: "{{ splunk_home }}/bin/splunk list forward-server -auth {{ splunk_admin_user }}:{{ splunk_admin_password }}"
-      register: splunk_config_check
-      changed_when: false
-      ignore_errors: yes
-
-    - name: Check Splunk metrics
-      shell: "{{ splank_home }}/bin/splunk list http-event-collector -auth {{ splunk_admin_user }}:{{ splunk_admin_password }} || true"
-      register: splunk_hec_check
-      changed_when: false
-      ignore_errors: yes
-
-    - name: Verify Splunk indexes
-      shell: "{{ splunk_home }}/bin/splunk list index -auth {{ splunk_admin_user }}:{{ splunk_admin_password }}"
-      register: splunk_indexes
-      changed_when: false
-      ignore_errors: yes
-
-    - name: Test Splunk REST API connectivity
-      uri:
-        url: "https://localhost:{{ splunk_port }}/services/server/info"
-        method: GET
-        user: "{{ splunk_admin_user }}"
-        password: "{{ splunk_admin_password }}"
-        validate_certs: no
-        status_code: 200
-      register: splunk_api_test
-      retries: 3
-      delay: 5
-
-    - name: Verify REST API response
-      assert:
-        that:
-          - splunk_api_test.status == 200
-        fail_msg: "Splunk REST API is not responding correctly"
-        success_msg: "✓ Splunk REST API is reachable and responding"
-
-    - name: Check Splunk disk usage
-      shell: "du -sh {{ splunk_home }}"
-      register: splunk_disk_usage
-      changed_when: false
-
-    - name: Display Splunk disk usage
-      debug:
-        msg: "Splunk installation disk usage: {{ splunk_disk_usage.stdout }}"
-
-    - name: Verify data directory permissions
-      file:
-        path: "{{ splunk_home }}/var"
-        mode: '0755'
-        owner: "splunk"
-        group: "splunk"
-        state: directory
-
-    - name: Summary - Splunk Health Check
-      debug:
-        msg: |
-          ✓ Splunk Installation Verified Successfully
-          ✓ Process Status: {{ splunk_process_check.stdout }}
-          ✓ Management Port ({{ splunk_port }}): Active
-          ✓ Web Port ({{ splunk_web_port }}): Active
-          ✓ REST API: Reachable
-          ✓ Disk Usage: {{ splunk_disk_usage.stdout }}
-          ✓ Installation Path: {{ splunk_home }}
-
-  handlers:
-    - name: Restart Splunk if needed
-      shell: "/opt/splunk/bin/splunk restart"
+    
+    - name: Verify Splunk service status
       become_user: splunk
+      command: "{{ splunk_home }}/bin/splunk status"
+      register: splunk_status
+      failed_when: "'splunkd is running' not in splunk_status.stdout"
+      changed_when: false
+    
+    - name: Check Splunk web port (8000) is listening
+      wait_for:
+        port: 8000
+        timeout: 10
+        state: started
+    
+    - name: Check Splunk management port (8089) is listening
+      wait_for:
+        port: 8089
+        timeout: 10
+        state: started
+    
+    - name: Test Splunk web interface accessibility
+      uri:
+        url: "http://localhost:8000"
+        status_code: 200
+        timeout: 30
+      register: web_test
+    
+    - name: Display test results
+      debug:
+        msg:
+          - "✅ Splunk process is running (PID: {{ splunk_process.stdout }})"
+          - "✅ Splunk service status: {{ splunk_status.stdout_lines[0] }}"
+          - "✅ Web interface (port 8000) is accessible"
+          - "✅ Management interface (port 8089) is accessible"
+          - "✅ HTTP response: {{ web_test.status }}"
+          - ""
+          - "Splunk is fully operational and ready to use!"
