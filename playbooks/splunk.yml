@@ -4,74 +4,74 @@ pipeline {
     // Task 2: Pipeline Environment & Credentials (20 Marks)
     environment {
         TF_IN_AUTOMATION = 'true'
-        TF_CLI_ARGS = '-no-color'
-        // AWS credentials will be injected securely using your existing credential
-        AWS_CREDENTIAL = 'Devops-project-id'
-        SSH_CRED_ID = 'ssh-private-key'
-        PATH = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:${env.PATH}"
-    }
-    
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-                echo "Checked out branch: ${env.BRANCH_NAME}"
-            }
-        }
-        
-        // Task 3: Initialization & Variable Inspection (20 Marks)
-        stage('Terraform Initialization') {
-            steps {
-                withCredentials([aws(credentialsId: env.AWS_CREDENTIAL)]) {
-                    script {
-                        echo "Initializing Terraform for branch: ${env.BRANCH_NAME}"
-                        sh '/bin/bash -c "terraform init"'
-                        
-                        // Display the contents of the branch-specific tfvars file
-                        echo "Displaying ${env.BRANCH_NAME}.tfvars configuration:"
-                        sh """#!/bin/bash
-                            if [ -f ${env.BRANCH_NAME}.tfvars ]; then
-                                echo "==== Contents of ${env.BRANCH_NAME}.tfvars ===="
-                                cat ${env.BRANCH_NAME}.tfvars
-                                echo "=============================================="
-                            else
-                                echo "Warning: ${env.BRANCH_NAME}.tfvars not found!"
-                                exit 1
-                            fi
-                        """
-                    }
-                }
-            }
-        }
-        
-        // Task 4: Branch-Specific Terraform Planning (20 Marks)
-        stage('Terraform Plan') {
-            steps {
-                withCredentials([aws(credentialsId: env.AWS_CREDENTIAL)]) {
-                    script {
-                        echo "Generating Terraform plan for ${env.BRANCH_NAME} environment"
-                        sh """#!/bin/bash
-                            terraform plan \
-                                -var-file=${env.BRANCH_NAME}.tfvars \
-                                -out=${env.BRANCH_NAME}.tfplan
-                        """
-                        echo "Terraform plan generated successfully!"
-                    }
-                }
-            }
-        }
-        
-        // Task 5: Conditional Manual Approval Gate (20 Marks)
-        stage('Validate Apply') {
-            when {
-                branch 'dev'
-            }
-            steps {
-                script {
-                    echo "Requesting approval for dev environment deployment..."
-                    def userInput = input(
-                        id: 'ApprovalGate',
-                        message: 'Do you want to apply this Terraform plan to the dev environment?',
+        ---
+        - name: Install and Configure Splunk
+            hosts: splunk_servers
+            become: yes
+            gather_facts: no
+            vars:
+                splunk_version: "9.0.5"
+                splunk_user: "splunk"
+                splunk_group: "splunk"
+                splunk_home: "/opt/splunk"
+                splunk_admin_password: "SplunkAdmin123!"
+
+            tasks:
+                - name: Update system packages
+                    raw: yum update -y
+                    register: yum_update
+                    retries: 3
+                    delay: 10
+
+                - name: Install required dependencies
+                    raw: yum install -y wget curl openssl libffi-devel openssl-devel python3 python3-pip nmap-ncat
+                    register: install_deps
+
+                - name: Create splunk group
+                    raw: groupadd splunk || true
+
+                - name: Create splunk user
+                    raw: useradd -g splunk -m -s /bin/bash splunk || true
+
+                - name: Download Splunk Enterprise RPM
+                    get_url:
+                        url: https://download.splunk.com/products/splunk/releases/9.0.5/linux/splunk-9.0.5-e9494146ae5c-linux-2.6-x86_64.rpm
+                        dest: /tmp/splunk.rpm
+
+                - name: Install Splunk RPM
+                    raw: rpm -ivh /tmp/splunk.rpm
+
+                - name: Set ownership on Splunk directory
+                    raw: chown -R splunk:splunk /opt/splunk
+
+                - name: Create Splunk configuration directories
+                    raw: |
+                        mkdir -p /opt/splunk/etc/system/local
+                        mkdir -p /opt/splunk/var
+                        chown -R splunk:splunk /opt/splunk/etc /opt/splunk/var
+                        chmod -R 755 /opt/splunk/etc /opt/splunk/var
+
+                - name: Start Splunk on first run
+                    raw: |
+                        su - splunk -c "/opt/splunk/bin/splunk start --accept-license --answer-yes --seed-passwd '${splunk_admin_password}' || true"
+                    register: splunk_start
+                    retries: 3
+                    delay: 30
+
+                - name: Enable Splunk at boot
+                    raw: su - splunk -c "/opt/splunk/bin/splunk enable boot-start -auth admin:${splunk_admin_password}"
+                    register: splunk_boot
+                    ignore_errors: yes
+
+                - name: Wait for Splunk to fully start
+                    raw: sleep 15; timeout 300 bash -c 'until nc -z localhost 8089; do sleep 5; done'
+                    ignore_errors: yes
+
+                - name: Clean up temporary files
+                    raw: rm -f /tmp/splunk.rpm
+
+                - name: Display Splunk installation status
+                    raw: echo "Splunk ${splunk_version} installation completed"
                         parameters: [
                             choice(
                                 name: 'APPROVAL',
